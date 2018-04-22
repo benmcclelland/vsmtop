@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/cjbassi/gotop/utils"
+	"github.com/benmcclelland/gotop/utils"
 	ui "github.com/cjbassi/termui"
 	psNet "github.com/shirou/gopsutil/net"
 )

@@ -9,8 +9,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/cjbassi/gotop/colorschemes"
-	w "github.com/cjbassi/gotop/widgets"
+	"github.com/benmcclelland/gotop/colorschemes"
+	w "github.com/benmcclelland/gotop/widgets"
 	ui "github.com/cjbassi/termui"
 	"github.com/docopt/docopt-go"
 )

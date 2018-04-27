@@ -29,9 +29,8 @@ var (
 	// used to render cpu and mem when zoom has changed
 	zoomed = make(chan bool, 1)
 
-	colorscheme = colorschemes.Default
+	colorscheme = colorschemes.VSM
 
-	minimal      = false
 	widgetCount  = 6
 	interval     = time.Second
 	zoom         = 7
@@ -42,7 +41,7 @@ var (
 	proc *w.Proc
 	net  *w.Net
 	disk *w.Disk
-	temp *w.Temp
+	tape *w.Tape
 
 	help *w.HelpMenu
 )
@@ -54,7 +53,6 @@ Usage: gotop [options]
 Options:
   -c, --color=NAME      Set a colorscheme.
   -h, --help            Show this screen.
-  -m, --minimal         Only show CPU, Mem and Process widgets.
   -r, --rate=RATE       Number of times per second to update CPU and Mem widgets [default: 1].
   -v, --version         Show version.
 
@@ -69,11 +67,6 @@ Colorschemes:
 
 	if val, _ := args["--color"]; val != nil {
 		handleColorscheme(val.(string))
-	}
-
-	minimal, _ = args["--minimal"].(bool)
-	if minimal {
-		widgetCount = 3
 	}
 
 	rateStr, _ := args["--rate"].(string)
@@ -105,20 +98,14 @@ func setupGrid() {
 	ui.Body.Cols = 12
 	ui.Body.Rows = 12
 
-	if minimal {
-		ui.Body.Set(0, 0, 12, 6, cpu)
-		ui.Body.Set(0, 6, 6, 12, mem)
-		ui.Body.Set(6, 6, 12, 12, proc)
-	} else {
-		ui.Body.Set(0, 0, 12, 4, cpu)
+	ui.Body.Set(0, 0, 12, 2, cpu)
 
-		ui.Body.Set(0, 4, 4, 6, disk)
-		ui.Body.Set(0, 6, 4, 8, temp)
-		ui.Body.Set(4, 4, 12, 8, mem)
+	ui.Body.Set(0, 2, 4, 8, disk)
+	ui.Body.Set(4, 2, 8, 8, tape)
+	ui.Body.Set(8, 2, 12, 8, mem)
 
-		ui.Body.Set(0, 8, 6, 12, net)
-		ui.Body.Set(6, 8, 12, 12, proc)
-	}
+	ui.Body.Set(0, 8, 4, 12, net)
+	ui.Body.Set(4, 8, 12, 12, proc)
 }
 
 func keyBinds() {
@@ -182,11 +169,6 @@ func widgetColors() {
 		LineColor["Average"] = ui.Color(colorscheme.CPULines[0])
 	}
 	cpu.LineColor = LineColor
-
-	if !minimal {
-		temp.TempLow = ui.Color(colorscheme.TempLow)
-		temp.TempHigh = ui.Color(colorscheme.TempHigh)
-	}
 }
 
 // load widgets asynchronously but wait till they are all finished
@@ -205,20 +187,18 @@ func initWidgets() {
 		defer wg.Done()
 		proc = w.NewProc(keyPressed)
 	}()
-	if !minimal {
-		go func() {
-			defer wg.Done()
-			net = w.NewNet()
-		}()
-		go func() {
-			defer wg.Done()
-			disk = w.NewDisk()
-		}()
-		go func() {
-			defer wg.Done()
-			temp = w.NewTemp()
-		}()
-	}
+	go func() {
+		defer wg.Done()
+		net = w.NewNet()
+	}()
+	go func() {
+		defer wg.Done()
+		disk = w.NewDisk()
+	}()
+	go func() {
+		defer wg.Done()
+		tape = w.NewTape()
+	}()
 
 	wg.Wait()
 }

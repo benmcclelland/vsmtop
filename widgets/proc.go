@@ -5,8 +5,10 @@ import (
 	"os/exec"
 	"sort"
 	"strconv"
+	"strings"
 	"time"
 
+	"github.com/benmcclelland/gotop/utils"
 	ui "github.com/cjbassi/termui"
 	psCPU "github.com/shirou/gopsutil/cpu"
 	psProc "github.com/shirou/gopsutil/process"
@@ -23,6 +25,20 @@ type Process struct {
 	Command string
 	CPU     float64
 	Mem     float32
+	InMBpS  float64
+	OutMBps float64
+	WMBps   float64
+	RMBps   float64
+}
+
+type nPerf struct {
+	inBytes  uint64
+	outBytes uint64
+}
+
+type dPerf struct {
+	wBytes uint64
+	rBytes uint64
 }
 
 type Proc struct {
@@ -30,11 +46,11 @@ type Proc struct {
 	cpuCount         int
 	interval         time.Duration
 	sortMethod       string
-	groupedProcs     []Process
-	ungroupedProcs   []Process
-	group            bool
+	procs            []Process
 	KeyPressed       chan bool
 	DefaultColWidths []int
+	nperf            map[int32]nPerf
+	dperf            map[int32]dPerf
 }
 
 func NewProc(keyPressed chan bool) *Proc {
@@ -44,18 +60,16 @@ func NewProc(keyPressed chan bool) *Proc {
 		interval:   time.Second,
 		cpuCount:   cpuCount,
 		sortMethod: "c",
-		group:      true,
 		KeyPressed: keyPressed,
+		nperf:      make(map[int32]nPerf),
+		dperf:      make(map[int32]dPerf),
 	}
-	self.Label = "Process List"
+	self.Label = "VSM Process List"
 	self.ColResizer = self.ColResize
-	self.DefaultColWidths = []int{5, 10, 4, 4}
-	self.ColWidths = make([]int, 4)
+	self.DefaultColWidths = []int{5, 10, 4, 4, 6, 6, 6, 6}
+	self.ColWidths = make([]int, 8)
 
 	self.UniqueCol = 0
-	if self.group {
-		self.UniqueCol = 1
-	}
 
 	self.keyBinds()
 
@@ -73,22 +87,61 @@ func NewProc(keyPressed chan bool) *Proc {
 
 func (self *Proc) update() {
 	psProcesses, _ := psProc.Processes()
-	processes := make([]Process, len(psProcesses))
-	for i, psProcess := range psProcesses {
-		pid := psProcess.Pid
+	self.procs = []Process{}
+	for _, psProcess := range psProcesses {
 		command, _ := psProcess.Name()
-		cpu, _ := psProcess.CPUPercent()
-		mem, _ := psProcess.MemoryPercent()
+		if strings.HasPrefix(command, "sam-") {
+			pid := psProcess.Pid
+			cpu, _ := psProcess.CPUPercent()
+			mem, _ := psProcess.MemoryPercent()
 
-		processes[i] = Process{
-			pid,
-			command,
-			cpu / float64(self.cpuCount),
-			mem,
+			nstats, _ := psProcess.NetIOCounters(false)
+			var outmbps, inmbps float64
+			if perf, ok := self.nperf[pid]; ok {
+				outmbps = utils.BytesToMB(nstats[0].BytesSent - perf.outBytes)
+				perf.outBytes = nstats[0].BytesSent
+				inmbps = utils.BytesToMB(nstats[0].BytesRecv - perf.inBytes)
+				perf.inBytes = nstats[0].BytesRecv
+				self.nperf[pid] = perf
+			} else {
+				outmbps = 0.0
+				perf.outBytes = nstats[0].BytesSent
+				inmbps = 0.0
+				perf.inBytes = nstats[0].BytesRecv
+				self.nperf[pid] = perf
+			}
+
+			dstats, err := psProcess.IOCounters()
+			if err != nil {
+				panic(err)
+			}
+			var wmbps, rmbps float64
+			if perf, ok := self.dperf[pid]; ok {
+				wmbps = utils.BytesToMB(dstats.WriteBytes - perf.wBytes)
+				perf.wBytes = dstats.WriteBytes
+				rmbps = utils.BytesToMB(dstats.ReadBytes - perf.rBytes)
+				perf.rBytes = dstats.ReadBytes
+				self.dperf[pid] = perf
+			} else {
+				wmbps = 0.0
+				perf.wBytes = dstats.WriteBytes
+				rmbps = 0.0
+				perf.rBytes = dstats.ReadBytes
+				self.dperf[pid] = perf
+			}
+
+			self.procs = append(self.procs, Process{
+				PID:     pid,
+				Command: command,
+				CPU:     cpu / float64(self.cpuCount),
+				Mem:     mem,
+				InMBpS:  inmbps,
+				OutMBps: outmbps,
+				WMBps:   wmbps,
+				RMBps:   rmbps,
+			})
 		}
 	}
-	self.ungroupedProcs = processes
-	self.groupedProcs = Group(processes)
 
 	self.Sort()
 }
@@ -96,27 +149,16 @@ func (self *Proc) update() {
 // Sort sorts either the grouped or ungrouped []Process based on the sortMethod.
 // Called with every update, when the sort method is changed, and when processes are grouped and ungrouped.
 func (self *Proc) Sort() {
-	self.Header = []string{"Count", "Command", "CPU%", "Mem%"}
+	self.Header = []string{"PID", "Command", "CPU%", "Mem%", "I-MBpS", "O-MBpS", "WMBps", "RMBps"}
 
-	if !self.group {
-		self.Header[0] = "PID"
-	}
-
-	processes := &self.ungroupedProcs
-	if self.group {
-		processes = &self.groupedProcs
-	}
+	processes := &self.procs
 
 	switch self.sortMethod {
 	case "c":
 		sort.Sort(sort.Reverse(ProcessByCPU(*processes)))
 		self.Header[2] += DOWN
 	case "p":
-		if self.group {
-			sort.Sort(sort.Reverse(ProcessByPID(*processes)))
-		} else {
-			sort.Sort(ProcessByPID(*processes))
-		}
+		sort.Sort(ProcessByPID(*processes))
 		self.Header[0] += DOWN
 	case "m":
 		sort.Sort(sort.Reverse(ProcessByMem(*processes)))
@@ -132,26 +174,31 @@ func (self *Proc) ColResize() {
 
 	self.Gap = 3
 
-	self.CellXPos = []int{
-		self.Gap,
-		self.Gap + self.ColWidths[0] + self.Gap,
-		(self.X + 2) - self.Gap - self.ColWidths[3] - self.Gap - self.ColWidths[2],
-		(self.X + 2) - self.Gap - self.ColWidths[3],
+	self.CellXPos = []int{self.Gap, 0, 0, 0, 0, 0, 0, 0}
+
+	total := self.Gap
+
+	for i := 1; i < len(self.CellXPos); i++ {
+		total += self.ColWidths[i-1] + self.Gap
+		self.CellXPos[i] = total
 	}
 
-	rowWidth := self.Gap +
-		self.ColWidths[0] + self.Gap +
-		self.ColWidths[1] + self.Gap +
-		self.ColWidths[2] + self.Gap +
-		self.ColWidths[3] + self.Gap
+	rowWidth := self.Gap
+	for i := 0; i < len(self.ColWidths); i++ {
+		rowWidth += self.ColWidths[i] + self.Gap
+	}
 
 	// only renders a column if it fits
 	if self.X < (rowWidth - self.Gap - self.ColWidths[3]) {
 		self.ColWidths[2] = 0
 		self.ColWidths[3] = 0
+		self.ColWidths[4] = 0
+		self.ColWidths[5] = 0
 	} else if self.X < rowWidth {
 		self.CellXPos[2] = self.CellXPos[3]
 		self.ColWidths[3] = 0
+		self.ColWidths[4] = 0
+		self.ColWidths[5] = 0
 	}
 }
 
@@ -209,12 +256,7 @@ func (self *Proc) keyBinds() {
 	})
 
 	ui.On("<tab>", func(e ui.Event) {
-		self.group = !self.group
-		if self.group {
-			self.UniqueCol = 1
-		} else {
-			self.UniqueCol = 0
-		}
+		self.UniqueCol = 0
 		self.Sort()
 		self.Top()
 		self.KeyPressed <- true
@@ -230,49 +272,19 @@ func (self *Proc) keyBinds() {
 	})
 }
 
-// Group groupes a []Process based on command name.
-// The first field changes from PID to count.
-// CPU and Mem are added together for each Process.
-func Group(P []Process) []Process {
-	groupedP := make(map[string]Process)
-	for _, process := range P {
-		val, ok := groupedP[process.Command]
-		if ok {
-			groupedP[process.Command] = Process{
-				val.PID + 1,
-				val.Command,
-				val.CPU + process.CPU,
-				val.Mem + process.Mem,
-			}
-		} else {
-			groupedP[process.Command] = Process{
-				1,
-				process.Command,
-				process.CPU,
-				process.Mem,
-			}
-		}
-	}
-
-	groupList := make([]Process, len(groupedP))
-	var i int
-	for _, val := range groupedP {
-		groupList[i] = val
-		i++
-	}
-
-	return groupList
-}
-
 // FieldsToStrings converts a []Process to a [][]string
 func FieldsToStrings(P []Process) [][]string {
 	strings := make([][]string, len(P))
 	for i, p := range P {
-		strings[i] = make([]string, 4)
+		strings[i] = make([]string, 8)
 		strings[i][0] = strconv.Itoa(int(p.PID))
 		strings[i][1] = p.Command
 		strings[i][2] = fmt.Sprintf("%4s", strconv.FormatFloat(p.CPU, 'f', 1, 64))
 		strings[i][3] = fmt.Sprintf("%4s", strconv.FormatFloat(float64(p.Mem), 'f', 1, 32))
+		strings[i][4] = fmt.Sprintf("%6s", strconv.FormatFloat(p.InMBpS, 'f', 3, 64))
+		strings[i][5] = fmt.Sprintf("%6s", strconv.FormatFloat(p.OutMBps, 'f', 3, 64))
+		strings[i][6] = fmt.Sprintf("%6s", strconv.FormatFloat(p.WMBps, 'f', 3, 64))
+		strings[i][7] = fmt.Sprintf("%6s", strconv.FormatFloat(p.RMBps, 'f', 3, 64))
 	}
 	return strings
 }

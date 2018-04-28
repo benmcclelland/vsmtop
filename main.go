@@ -9,8 +9,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/benmcclelland/gotop/colorschemes"
-	w "github.com/benmcclelland/gotop/widgets"
+	"github.com/benmcclelland/vsmtop/colorschemes"
+	w "github.com/benmcclelland/vsmtop/widgets"
 	ui "github.com/cjbassi/termui"
 	"github.com/docopt/docopt-go"
 )
@@ -48,7 +48,7 @@ var (
 
 func cliArguments() {
 	usage := `
-Usage: gotop [options]
+Usage: vsmtop [options]
 
 Options:
   -c, --color=NAME      Set a colorscheme.
@@ -265,7 +265,7 @@ func main() {
 		}
 	}()
 
-	// handles kill signal sent to gotop
+	// handles kill signal sent to vsmtop
 	c := make(chan os.Signal, 2)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 	go func() {

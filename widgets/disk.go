@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/benmcclelland/gotop/utils"
+	"github.com/benmcclelland/vsmtop/utils"
 	ui "github.com/cjbassi/termui"
 	"github.com/shirou/gopsutil/disk"
 )

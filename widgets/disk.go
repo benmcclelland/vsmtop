@@ -75,15 +75,15 @@ func (self *Disk) update() {
 	i := 0
 	for _, fs := range self.infos {
 		for _, d := range fs.MM {
-			self.updateDev(d.FamilySet+" mm "+filepath.Base(d.Path), filepath.Base(d.Path), i)
+			self.updateDev(d.FamilySet+" mm "+filepath.Base(d.Path), filepath.Base(realPath(d.Path)), i)
 			i++
 		}
 		for _, d := range fs.MR {
-			self.updateDev(d.FamilySet+" mr "+filepath.Base(d.Path), filepath.Base(d.Path), i)
+			self.updateDev(d.FamilySet+" mr "+filepath.Base(d.Path), filepath.Base(realPath(d.Path)), i)
 			i++
 		}
 		for _, d := range fs.MD {
-			self.updateDev(d.FamilySet+" md "+filepath.Base(d.Path), filepath.Base(d.Path), i)
+			self.updateDev(d.FamilySet+" md "+filepath.Base(d.Path), filepath.Base(realPath(d.Path)), i)
 			i++
 		}
 	}
@@ -92,6 +92,12 @@ func (self *Disk) update() {
 }
 
 func (self *Disk) updateDev(name, dev string, i int) {
+	//utils.Error("disk data",
+	//	fmt.Sprint(
+	//		"name: ", name, "\n",
+	//		"dev: ", dev, "\n",
+	//		"self.countersnew: ", self.countersnew, "\n",
+	//	))
 
 	diff := self.countersnew[dev].IoTime - self.countersprev[dev].IoTime
 	util := diff / 1000000
@@ -105,6 +111,18 @@ func (self *Disk) updateDev(name, dev string, i int) {
 	riops := rate(self.countersprev[dev].ReadCount, self.countersnew[dev].ReadCount, false)
 	self.Lines[i].Title2 = fmt.Sprintf("W: %s/s %s IOPS  R: %s/s %s IOPS", wbps, wiops, rbps, riops)
 
+}
+
+func realPath(path string) string {
+	e, err := filepath.EvalSymlinks(path)
+	if err != nil {
+		panic(err)
+	}
+	r, err := filepath.Abs(e)
+	if err != nil {
+		panic(err)
+	}
+	return r
 }
 
 func rate(prev, new uint64, units bool) string {

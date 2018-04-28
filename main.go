@@ -31,7 +31,6 @@ var (
 
 	colorscheme = colorschemes.VSM
 
-	widgetCount  = 6
 	interval     = time.Second
 	zoom         = 7
 	zoomInterval = 3
@@ -173,28 +172,37 @@ func widgetColors() {
 
 // load widgets asynchronously but wait till they are all finished
 func initWidgets() {
-	wg.Add(widgetCount)
-
+	wg.Add(1)
 	go func() {
 		defer wg.Done()
 		cpu = w.NewCPU(interval, zoom)
 	}()
+
+	wg.Add(1)
 	go func() {
 		defer wg.Done()
 		mem = w.NewMem(interval, zoom)
 	}()
+
+	wg.Add(1)
 	go func() {
 		defer wg.Done()
 		proc = w.NewProc(keyPressed)
 	}()
+
+	wg.Add(1)
 	go func() {
 		defer wg.Done()
 		net = w.NewNet()
 	}()
+
+	wg.Add(1)
 	go func() {
 		defer wg.Done()
 		disk = w.NewDisk()
 	}()
+
+	wg.Add(1)
 	go func() {
 		defer wg.Done()
 		tape = w.NewTape()

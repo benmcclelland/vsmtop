@@ -68,7 +68,6 @@ func NewProc(keyPressed chan bool) *Proc {
 	self.ColResizer = self.ColResize
 	self.DefaultColWidths = []int{5, 10, 4, 4, 6, 6, 6, 6}
 	self.ColWidths = make([]int, 8)
-
 	self.UniqueCol = 0
 
 	self.keyBinds()

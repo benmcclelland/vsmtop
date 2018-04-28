@@ -15,7 +15,7 @@ import (
 	"github.com/docopt/docopt-go"
 )
 
-const VERSION = "1.3.2"
+const VERSION = "1.3.3"
 
 var (
 	termResized = make(chan bool, 1)
@@ -95,17 +95,17 @@ func handleColorscheme(cs string) {
 }
 
 func setupGrid() {
-	ui.Body.Cols = 12
+	ui.Body.Cols = 24
 	ui.Body.Rows = 12
 
-	ui.Body.Set(0, 0, 12, 2, cpu)
+	ui.Body.Set(0, 0, 24, 2, cpu)
 
-	ui.Body.Set(0, 2, 4, 8, disk)
-	ui.Body.Set(4, 2, 8, 8, tape)
-	ui.Body.Set(8, 2, 12, 8, mem)
+	ui.Body.Set(0, 2, 10, 8, disk)
+	ui.Body.Set(10, 2, 18, 8, tape)
+	ui.Body.Set(18, 2, 24, 8, mem)
 
-	ui.Body.Set(0, 8, 4, 12, net)
-	ui.Body.Set(4, 8, 12, 12, proc)
+	ui.Body.Set(0, 8, 8, 12, net)
+	ui.Body.Set(8, 8, 24, 12, proc)
 }
 
 func keyBinds() {

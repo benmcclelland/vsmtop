@@ -75,18 +75,25 @@ func (self *Disk) update() {
 	self.Rows = nil
 	for _, fs := range self.infos {
 		self.Rows = append(self.Rows, []string{fs.Name, "", "", "", "", "", ""})
-		for _, d := range fs.MM {
+		if len(fs.MM) > 0 {
 			self.Rows = append(self.Rows, []string{" mm", "", "", "", "", "", ""})
-			self.Rows = append(self.Rows, self.updateDev("  "+filepath.Base(d.Path), filepath.Base(realPath(d.Path))))
+			for _, d := range fs.MM {
+				self.Rows = append(self.Rows, self.updateDev("  "+filepath.Base(d.Path), filepath.Base(realPath(d.Path))))
+			}
 		}
-		for _, d := range fs.MR {
+		if len(fs.MR) > 0 {
 			self.Rows = append(self.Rows, []string{" mr", "", "", "", "", "", ""})
-			self.Rows = append(self.Rows, self.updateDev("  "+filepath.Base(d.Path), filepath.Base(realPath(d.Path))))
+			for _, d := range fs.MR {
+				self.Rows = append(self.Rows, self.updateDev("  "+filepath.Base(d.Path), filepath.Base(realPath(d.Path))))
+			}
 		}
-		for _, d := range fs.MD {
+		if len(fs.MD) > 0 {
 			self.Rows = append(self.Rows, []string{" md", "", "", "", "", "", ""})
-			self.Rows = append(self.Rows, self.updateDev("  "+filepath.Base(d.Path), filepath.Base(realPath(d.Path))))
+			for _, d := range fs.MD {
+				self.Rows = append(self.Rows, self.updateDev("  "+filepath.Base(d.Path), filepath.Base(realPath(d.Path))))
+			}
 		}
+		self.Rows = append(self.Rows, []string{"", "", "", "", "", "", ""})
 	}
 
 	self.countersprev = self.countersnew

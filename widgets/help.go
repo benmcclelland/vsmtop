@@ -20,8 +20,7 @@ Process Sorting
   - m: Mem
   - p: PID
 
-<tab>: toggle process grouping
-dd: kill the selected process or process group
+dd: kill the selected process
 
 h and l: zoom in and out of CPU and Mem graphs
 `

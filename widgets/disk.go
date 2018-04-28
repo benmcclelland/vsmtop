@@ -18,12 +18,14 @@ type Disk struct {
 	devs         []string
 	countersprev map[string]disk.IOCountersStat
 	countersnew  map[string]disk.IOCountersStat
+	none         bool
 }
 
 func NewDisk() *Disk {
+	var none bool
 	f, err := utils.ParseMcf()
 	if err != nil {
-		panic(err)
+		none = true
 	}
 
 	var devs []string
@@ -44,6 +46,7 @@ func NewDisk() *Disk {
 		interval: time.Second,
 		infos:    f,
 		devs:     devs,
+		none:     none,
 	}
 	self.Label = "Disk Usage"
 	self.ColResizer = self.ColResize
@@ -65,6 +68,12 @@ func NewDisk() *Disk {
 }
 
 func (self *Disk) update() {
+	if self.none {
+		self.Rows = make([][]string, 1)
+		self.Rows[0] = []string{"None", "", "", "", "", ""}
+		return
+	}
+
 	self.countersnew, _ = disk.IOCounters()
 
 	if self.countersprev == nil {

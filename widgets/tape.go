@@ -15,18 +15,21 @@ type Tape struct {
 	devs         []string
 	countersprev map[string]utils.TapeStats
 	countersnew  map[string]utils.TapeStats
+	none         bool
 }
 
 func NewTape() *Tape {
+	var none bool
 	devs, err := utils.FindDevices()
 	if err != nil {
-		panic(err)
+		none = true
 	}
 
 	self := &Tape{
 		Table:    ui.NewTable(),
 		interval: time.Second,
 		devs:     devs,
+		none:     none,
 	}
 	self.Label = "Tape Drive Usage"
 	self.ColResizer = self.ColResize
@@ -48,6 +51,12 @@ func NewTape() *Tape {
 }
 
 func (self *Tape) update() {
+	if self.none {
+		self.Rows = make([][]string, 1)
+		self.Rows[0] = []string{"None", "", "", ""}
+		return
+	}
+
 	self.countersnew, _ = utils.GetAllStats(self.devs)
 
 	if self.countersprev == nil {

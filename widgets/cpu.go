@@ -16,6 +16,8 @@ type CPU struct {
 	interval time.Duration
 }
 
+const CPUMAX = 2
+
 func NewCPU(interval time.Duration, zoom int) *CPU {
 	count, _ := psCPU.Counts(false)
 	self := &CPU{
@@ -25,7 +27,7 @@ func NewCPU(interval time.Duration, zoom int) *CPU {
 	}
 	self.Label = "CPU Usage"
 	self.Zoom = zoom
-	if self.Count <= 8 {
+	if self.Count <= CPUMAX {
 		for i := 0; i < self.Count; i++ {
 			key := "CPU" + strconv.Itoa(i)
 			self.Data[key] = []float64{0}
@@ -50,7 +52,7 @@ func NewCPU(interval time.Duration, zoom int) *CPU {
 // calculates the CPU usage over a 1 second interval and blocks for the duration
 func (self *CPU) update() {
 	// show average cpu usage if more than 8 cores
-	if self.Count <= 8 {
+	if self.Count <= CPUMAX {
 		percents, _ := psCPU.Percent(self.interval, true)
 		if len(percents) != self.Count {
 			count, _ := psCPU.Counts(false)

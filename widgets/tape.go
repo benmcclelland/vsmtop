@@ -30,9 +30,10 @@ func NewTape() *Tape {
 	}
 	self.Label = "Tape Drive Usage"
 	self.ColResizer = self.ColResize
-	self.ColWidths = []int{6, 8, 8, 8}
+	self.ColWidths = []int{6, 10, 10, 12}
 	self.UniqueCol = 0
 	self.Header = []string{"DEV", "Wbps", "Rbps", "UTIL%"}
+	self.SelectedRow = -1
 
 	self.update()
 

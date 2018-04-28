@@ -11,7 +11,7 @@ import (
 )
 
 type Disk struct {
-	*ui.Sparklines
+	*ui.Table
 	interval time.Duration
 
 	infos        []utils.FsInfo
@@ -26,31 +26,31 @@ func NewDisk() *Disk {
 		panic(err)
 	}
 
-	var sl []*ui.Sparkline
 	var devs []string
 	for _, fs := range f {
 		for _, d := range fs.MM {
-			sl = append(sl, ui.NewSparkline())
 			devs = append(devs, d.Path)
 		}
 		for _, d := range fs.MR {
-			sl = append(sl, ui.NewSparkline())
 			devs = append(devs, d.Path)
 		}
 		for _, d := range fs.MD {
-			sl = append(sl, ui.NewSparkline())
 			devs = append(devs, d.Path)
 		}
 	}
 
-	spark := ui.NewSparklines(sl...)
 	self := &Disk{
-		Sparklines: spark,
-		interval:   time.Second,
-		infos:      f,
-		devs:       devs,
+		Table:    ui.NewTable(),
+		interval: time.Second,
+		infos:    f,
+		devs:     devs,
 	}
 	self.Label = "Disk Usage"
+	self.ColResizer = self.ColResize
+	self.ColWidths = []int{10, 7, 7, 7, 7, 7}
+	self.UniqueCol = 0
+	self.Header = []string{"DEV", "Wbps", "Wiops", "Rbps", "Riops", "UTIL%"}
+	self.SelectedRow = -1
 
 	self.update()
 
@@ -72,26 +72,27 @@ func (self *Disk) update() {
 		return
 	}
 
-	i := 0
+	self.Rows = nil
 	for _, fs := range self.infos {
+		self.Rows = append(self.Rows, []string{fs.Name, "", "", "", "", "", ""})
 		for _, d := range fs.MM {
-			self.updateDev(d.FamilySet+" mm "+filepath.Base(d.Path), filepath.Base(realPath(d.Path)), i)
-			i++
+			self.Rows = append(self.Rows, []string{" mm", "", "", "", "", "", ""})
+			self.Rows = append(self.Rows, self.updateDev("  "+filepath.Base(d.Path), filepath.Base(realPath(d.Path))))
 		}
 		for _, d := range fs.MR {
-			self.updateDev(d.FamilySet+" mr "+filepath.Base(d.Path), filepath.Base(realPath(d.Path)), i)
-			i++
+			self.Rows = append(self.Rows, []string{" mr", "", "", "", "", "", ""})
+			self.Rows = append(self.Rows, self.updateDev("  "+filepath.Base(d.Path), filepath.Base(realPath(d.Path))))
 		}
 		for _, d := range fs.MD {
-			self.updateDev(d.FamilySet+" md "+filepath.Base(d.Path), filepath.Base(realPath(d.Path)), i)
-			i++
+			self.Rows = append(self.Rows, []string{" md", "", "", "", "", "", ""})
+			self.Rows = append(self.Rows, self.updateDev("  "+filepath.Base(d.Path), filepath.Base(realPath(d.Path))))
 		}
 	}
 
 	self.countersprev = self.countersnew
 }
 
-func (self *Disk) updateDev(name, dev string, i int) {
+func (self *Disk) updateDev(name, dev string) []string {
 	//utils.Error("disk data",
 	//	fmt.Sprint(
 	//		"name: ", name, "\n",
@@ -99,18 +100,24 @@ func (self *Disk) updateDev(name, dev string, i int) {
 	//		"self.countersnew: ", self.countersnew, "\n",
 	//	))
 
-	diff := self.countersnew[dev].IoTime - self.countersprev[dev].IoTime
-	util := diff / 1000000
-	self.Lines[i].Data = append(self.Lines[0].Data, int(util))
+	s := make([]string, 6)
 
-	self.Lines[i].Title1 = fmt.Sprintf(" %s: util %v%%", name, util)
+	diff := self.countersnew[dev].IoTime - self.countersprev[dev].IoTime
+	util := diff / 10
 
 	wbps := rate(self.countersprev[dev].WriteBytes, self.countersnew[dev].WriteBytes, true)
 	wiops := rate(self.countersprev[dev].WriteCount, self.countersnew[dev].WriteCount, false)
 	rbps := rate(self.countersprev[dev].ReadBytes, self.countersnew[dev].ReadBytes, true)
 	riops := rate(self.countersprev[dev].ReadCount, self.countersnew[dev].ReadCount, false)
-	self.Lines[i].Title2 = fmt.Sprintf("W: %s/s %s IOPS  R: %s/s %s IOPS", wbps, wiops, rbps, riops)
 
+	s[0] = name
+	s[1] = wbps
+	s[2] = wiops
+	s[3] = rbps
+	s[4] = riops
+	s[5] = fmt.Sprintf("%v", util)
+
+	return s
 }
 
 func realPath(path string) string {
@@ -141,7 +148,7 @@ func rate(prev, new uint64, units bool) string {
 			unit = "kB"
 		}
 
-		return fmt.Sprintf("%5.1f %s", diff, unit)
+		return fmt.Sprintf("%5.1f%s", diff, unit)
 	}
 
 	return fmt.Sprintf("%5.1f", diff)

@@ -2,7 +2,6 @@ package widgets
 
 import (
 	"fmt"
-	"path/filepath"
 	"time"
 
 	"github.com/benmcclelland/gotop/utils"
@@ -10,7 +9,7 @@ import (
 )
 
 type Tape struct {
-	*ui.Sparklines
+	*ui.Table
 	interval time.Duration
 
 	devs         []string
@@ -24,18 +23,16 @@ func NewTape() *Tape {
 		panic(err)
 	}
 
-	var sl []*ui.Sparkline
-	for _ = range devs {
-		sl = append(sl, ui.NewSparkline())
-	}
-
-	spark := ui.NewSparklines(sl...)
 	self := &Tape{
-		Sparklines: spark,
-		interval:   time.Second,
-		devs:       devs,
+		Table:    ui.NewTable(),
+		interval: time.Second,
+		devs:     devs,
 	}
 	self.Label = "Tape Drive Usage"
+	self.ColResizer = self.ColResize
+	self.ColWidths = []int{6, 8, 8, 8}
+	self.UniqueCol = 0
+	self.Header = []string{"DEV", "Wbps", "Rbps", "UTIL%"}
 
 	self.update()
 
@@ -57,22 +54,26 @@ func (self *Tape) update() {
 		return
 	}
 
+	self.Rows = make([][]string, len(self.devs))
 	for i, dev := range self.devs {
-		self.updateDev(dev, i)
+		self.Rows[i] = self.updateDev(dev, i)
 	}
 
 	self.countersprev = self.countersnew
 }
 
-func (self *Tape) updateDev(dev string, i int) {
+func (self *Tape) updateDev(dev string, i int) []string {
+	s := make([]string, 4)
+
 	diff := self.countersnew[dev]["io_ns"] - self.countersprev[dev]["io_ns"]
 	util := diff / 10000000
-	self.Lines[i].Data = append(self.Lines[0].Data, int(util))
-
-	self.Lines[i].Title1 = fmt.Sprintf(" %s: util %v%%", filepath.Base(dev), util)
-
 	wbps := rate(uint64(self.countersprev[dev]["write_byte_cnt"]), uint64(self.countersnew[dev]["write_byte_cnt"]), true)
 	rbps := rate(uint64(self.countersprev[dev]["read_byte_cnt"]), uint64(self.countersnew[dev]["read_byte_cnt"]), true)
-	self.Lines[i].Title2 = fmt.Sprintf("W: %s/s  R: %s/s", wbps, rbps)
 
+	s[0] = dev
+	s[1] = wbps
+	s[2] = rbps
+	s[3] = fmt.Sprintf("%v", util)
+
+	return s
 }

@@ -9,7 +9,7 @@ import (
 const KEYBINDS = `
 Quit: q or <C-c>
 
-<tab>: rotate process/disk/tape focus
+<tab>: cycle process/disk/tape focus
 
 Table Navigation
   - <up>/<down> and j/k: up and down
@@ -22,7 +22,7 @@ Process Sorting
   - m: Mem
   - p: PID
 
-n: rotate selected interface stats
+n: cycle selected interface stats
 dd: kill the selected process
 h and l: zoom in and out of CPU and Mem graphs
 

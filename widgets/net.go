@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/benmcclelland/vsmtop/utils"
 	ui "github.com/benmcclelland/termui"
+	"github.com/benmcclelland/vsmtop/utils"
 	psNet "github.com/shirou/gopsutil/net"
 )
 
@@ -15,6 +15,7 @@ type Net struct {
 	// used to calculate recent network activity
 	prevRecvTotal uint64
 	prevSentTotal uint64
+	iface         int
 }
 
 func NewNet() *Net {
@@ -28,6 +29,7 @@ func NewNet() *Net {
 	self := &Net{
 		Sparklines: spark,
 		interval:   time.Second,
+		iface:      -1,
 	}
 	self.Label = "Network Usage"
 
@@ -43,11 +45,34 @@ func NewNet() *Net {
 	return self
 }
 
+func (self *Net) Switch() {
+	self.iface++
+	interfaces, _ := psNet.IOCounters(true)
+	if self.iface == len(interfaces) {
+		self.iface = -1
+	}
+	self.prevRecvTotal = 0
+	self.prevSentTotal = 0
+	self.Lines[0].Data = []int{0}
+	self.Lines[1].Data = []int{0}
+	self.update()
+}
+
 func (self *Net) update() {
-	// `false` causes psutil to group all network activity
-	interfaces, _ := psNet.IOCounters(false)
-	curRecvTotal := interfaces[0].BytesRecv
-	curSentTotal := interfaces[0].BytesSent
+	var curRecvTotal, curSentTotal uint64
+	var name string
+	if self.iface == -1 {
+		// `false` causes psutil to group all network activity
+		interfaces, _ := psNet.IOCounters(false)
+		curRecvTotal = interfaces[0].BytesRecv
+		curSentTotal = interfaces[0].BytesSent
+		name = "Total"
+	} else {
+		interfaces, _ := psNet.IOCounters(true)
+		curRecvTotal = interfaces[self.iface].BytesRecv
+		curSentTotal = interfaces[self.iface].BytesSent
+		name = interfaces[self.iface].Name
+	}
 
 	if self.prevRecvTotal != 0 { // if this isn't the first update
 		recvRecent := curRecvTotal - self.prevRecvTotal
@@ -107,7 +132,7 @@ func (self *Net) update() {
 			unitTotal = "MB"
 		}
 
-		self.Lines[i].Title1 = fmt.Sprintf(" Total %s: %5.1f %s", method, total, unitTotal)
+		self.Lines[i].Title1 = fmt.Sprintf(" %s %s: %5.1f %s", name, method, total, unitTotal)
 		self.Lines[i].Title2 = fmt.Sprintf(" %s/s: %9d %2s/s", method, recent, unitRecent)
 	}
 }

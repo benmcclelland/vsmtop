@@ -22,9 +22,11 @@ Process Sorting
   - m: Mem
   - p: PID
 
+n: rotate selected interface stats
 dd: kill the selected process
-
 h and l: zoom in and out of CPU and Mem graphs
+
+esc to exit help
 `
 
 type HelpMenu struct {
@@ -34,7 +36,7 @@ type HelpMenu struct {
 func NewHelpMenu() *HelpMenu {
 	block := ui.NewBlock()
 	block.X = 48 // width - 1
-	block.Y = 17 // height - 1
+	block.Y = 20 // height - 1
 	return &HelpMenu{block}
 }
 

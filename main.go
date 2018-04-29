@@ -147,6 +147,11 @@ func keyBinds() {
 		}
 	})
 
+	ui.On("n", func(e ui.Event) {
+		net.Switch()
+		ui.Render(net)
+	})
+
 	ui.On("<tab>", func(e ui.Event) {
 		switch focus {
 		case 0:

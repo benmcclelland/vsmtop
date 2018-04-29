@@ -5,8 +5,8 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/benmcclelland/vsmtop/utils"
 	ui "github.com/benmcclelland/termui"
+	"github.com/benmcclelland/vsmtop/utils"
 	psCPU "github.com/shirou/gopsutil/cpu"
 )
 
@@ -16,7 +16,10 @@ type CPU struct {
 	interval time.Duration
 }
 
-const CPUMAX = 2
+const (
+	CPUMAX     = 2
+	CPUHISTMAX = 1000
+)
 
 func NewCPU(interval time.Duration, zoom int) *CPU {
 	count, _ := psCPU.Counts(false)
@@ -69,9 +72,13 @@ func (self *CPU) update() {
 			key := "CPU" + strconv.Itoa(i)
 			percent := percents[i]
 			self.Data[key] = append(self.Data[key], percent)
+			if len(self.Data[key]) > CPUHISTMAX {
+				self.Data[key] = self.Data[key][len(self.Data[key])-CPUHISTMAX:]
+			}
 		}
 	} else {
 		percent, _ := psCPU.Percent(self.interval, false)
 		self.Data["Average"] = append(self.Data["Average"], percent[0])
+		self.Data["Average"] = self.Data["Average"][len(self.Data["Average"])-CPUHISTMAX:]
 	}
 }

@@ -12,6 +12,8 @@ type Mem struct {
 	interval time.Duration
 }
 
+const MEMHISTMAX = 1000
+
 func NewMem(interval time.Duration, zoom int) *Mem {
 	self := &Mem{
 		LineGraph: ui.NewLineGraph(),
@@ -38,5 +40,11 @@ func (self *Mem) update() {
 	main, _ := psMem.VirtualMemory()
 	swap, _ := psMem.SwapMemory()
 	self.Data["Main"] = append(self.Data["Main"], main.UsedPercent)
+	if len(self.Data["Main"]) > MEMHISTMAX {
+		self.Data["Main"] = self.Data["Main"][len(self.Data["Main"])-MEMHISTMAX:]
+	}
 	self.Data["Swap"] = append(self.Data["Swap"], swap.UsedPercent)
+	if len(self.Data["Swap"]) > MEMHISTMAX {
+		self.Data["Swap"] = self.Data["Swap"][len(self.Data["Swap"])-MEMHISTMAX:]
+	}
 }

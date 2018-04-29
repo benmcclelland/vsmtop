@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"math"
 
-	ui "github.com/cjbassi/termui"
+	ui "github.com/benmcclelland/termui"
 )
 
 func BytesToKB(b uint64) float64 {

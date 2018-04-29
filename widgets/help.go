@@ -3,7 +3,7 @@ package widgets
 import (
 	"strings"
 
-	ui "github.com/cjbassi/termui"
+	ui "github.com/benmcclelland/termui"
 )
 
 const KEYBINDS = `

@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/benmcclelland/vsmtop/utils"
-	ui "github.com/cjbassi/termui"
+	ui "github.com/benmcclelland/termui"
 	psCPU "github.com/shirou/gopsutil/cpu"
 )
 

@@ -5,8 +5,8 @@ import (
 	"path/filepath"
 	"time"
 
+	ui "github.com/benmcclelland/termui"
 	"github.com/benmcclelland/vsmtop/utils"
-	ui "github.com/cjbassi/termui"
 	"github.com/shirou/gopsutil/disk"
 )
 
@@ -16,12 +16,13 @@ type Disk struct {
 
 	infos        []utils.FsInfo
 	devs         []string
+	KeyPressed   chan bool
 	countersprev map[string]disk.IOCountersStat
 	countersnew  map[string]disk.IOCountersStat
 	none         bool
 }
 
-func NewDisk() *Disk {
+func NewDisk(keyPressed chan bool) *Disk {
 	var none bool
 	f, err := utils.ParseMcf()
 	if err != nil {
@@ -42,11 +43,12 @@ func NewDisk() *Disk {
 	}
 
 	self := &Disk{
-		Table:    ui.NewTable(),
-		interval: time.Second,
-		infos:    f,
-		devs:     devs,
-		none:     none,
+		Table:      ui.NewTable(),
+		interval:   time.Second,
+		infos:      f,
+		devs:       devs,
+		KeyPressed: keyPressed,
+		none:       none,
 	}
 	self.Label = "Disk Usage"
 	self.ColResizer = self.ColResize
@@ -134,6 +136,64 @@ func (self *Disk) updateDev(name, dev string) []string {
 	s[5] = fmt.Sprintf("%v", util)
 
 	return s
+}
+
+func (self *Disk) ForeGround() {
+	ui.On("<MouseLeft>", func(e ui.Event) {
+		self.Click(e.MouseX, e.MouseY)
+		self.KeyPressed <- true
+	})
+
+	ui.On("<MouseWheelUp>", "<MouseWheelDown>", func(e ui.Event) {
+		switch e.Key {
+		case "<MouseWheelDown>":
+			self.Down()
+		case "<MouseWheelUp>":
+			self.Up()
+		}
+		self.KeyPressed <- true
+	})
+
+	ui.On("<up>", "<down>", func(e ui.Event) {
+		switch e.Key {
+		case "<up>":
+			self.Up()
+		case "<down>":
+			self.Down()
+		}
+		self.KeyPressed <- true
+	})
+
+	viKeys := []string{"j", "k", "gg", "G", "<C-d>", "<C-u>", "<C-f>", "<C-b>"}
+	ui.On(viKeys, func(e ui.Event) {
+		switch e.Key {
+		case "j":
+			self.Down()
+		case "k":
+			self.Up()
+		case "gg":
+			self.Top()
+		case "G":
+			self.Bottom()
+		case "<C-d>":
+			self.HalfPageDown()
+		case "<C-u>":
+			self.HalfPageUp()
+		case "<C-f>":
+			self.PageDown()
+		case "<C-b>":
+			self.PageUp()
+		}
+		self.KeyPressed <- true
+	})
+}
+
+func (self *Disk) BackGround() {
+	events := []string{
+		"<MouseLeft>", "<MouseWheelUp>", "<MouseWheelDown>", "<up>", "<down>",
+		"j", "k", "gg", "G", "<C-d>", "<C-u>", "<C-f>", "<C-b>",
+	}
+	ui.Off(events)
 }
 
 func realPath(path string) string {

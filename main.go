@@ -9,9 +9,9 @@ import (
 	"syscall"
 	"time"
 
+	ui "github.com/benmcclelland/termui"
 	"github.com/benmcclelland/vsmtop/colorschemes"
 	w "github.com/benmcclelland/vsmtop/widgets"
-	ui "github.com/cjbassi/termui"
 	"github.com/docopt/docopt-go"
 )
 
@@ -25,7 +25,9 @@ var (
 
 	wg sync.WaitGroup
 	// used to render the proc widget whenever a key is pressed for it
-	keyPressed = make(chan bool, 1)
+	procKeyPressed = make(chan bool, 1)
+	// used to render the disk widget whenever a key is pressed for it
+	diskKeyPressed = make(chan bool, 1)
 	// used to render cpu and mem when zoom has changed
 	zoomed = make(chan bool, 1)
 
@@ -41,6 +43,8 @@ var (
 	net  *w.Net
 	disk *w.Disk
 	tape *w.Tape
+
+	focus = 0
 
 	help *w.HelpMenu
 )
@@ -140,6 +144,19 @@ func keyBinds() {
 			zoomed <- true
 		}
 	})
+
+	ui.On("<tab>", func(e ui.Event) {
+		switch focus {
+		case 0:
+			proc.BackGround()
+			disk.ForeGround()
+			focus = 1
+		case 1:
+			disk.BackGround()
+			proc.ForeGround()
+			focus = 0
+		}
+	})
 }
 
 func termuiColors() {
@@ -187,7 +204,7 @@ func initWidgets() {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		proc = w.NewProc(keyPressed)
+		proc = w.NewProc(procKeyPressed)
 	}()
 
 	wg.Add(1)
@@ -199,7 +216,7 @@ func initWidgets() {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		disk = w.NewDisk()
+		disk = w.NewDisk(diskKeyPressed)
 	}()
 
 	wg.Add(1)
@@ -262,8 +279,10 @@ func main() {
 				case <-termResized:
 					ui.Clear()
 					ui.Render(ui.Body)
-				case <-keyPressed:
+				case <-procKeyPressed:
 					ui.Render(proc)
+				case <-diskKeyPressed:
+					ui.Render(disk)
 				case <-zoomed:
 					ui.Render(cpu, mem)
 				case <-drawTick.C:

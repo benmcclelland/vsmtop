@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
+	ui "github.com/benmcclelland/termui"
 	"github.com/benmcclelland/vsmtop/utils"
-	ui "github.com/cjbassi/termui"
 	psCPU "github.com/shirou/gopsutil/cpu"
 	psProc "github.com/shirou/gopsutil/process"
 )
@@ -70,7 +70,7 @@ func NewProc(keyPressed chan bool) *Proc {
 	self.ColWidths = make([]int, 8)
 	self.UniqueCol = 0
 
-	self.keyBinds()
+	self.ForeGround()
 
 	self.update()
 
@@ -201,7 +201,7 @@ func (self *Proc) ColResize() {
 	}
 }
 
-func (self *Proc) keyBinds() {
+func (self *Proc) ForeGround() {
 	ui.On("<MouseLeft>", func(e ui.Event) {
 		self.Click(e.MouseX, e.MouseY)
 		self.KeyPressed <- true
@@ -254,13 +254,6 @@ func (self *Proc) keyBinds() {
 		self.Kill()
 	})
 
-	ui.On("<tab>", func(e ui.Event) {
-		self.UniqueCol = 0
-		self.Sort()
-		self.Top()
-		self.KeyPressed <- true
-	})
-
 	ui.On("m", "c", "p", func(e ui.Event) {
 		if self.sortMethod != e.Key {
 			self.sortMethod = e.Key
@@ -269,6 +262,15 @@ func (self *Proc) keyBinds() {
 			self.KeyPressed <- true
 		}
 	})
+}
+
+func (self *Proc) BackGround() {
+	events := []string{
+		"<MouseLeft>", "<MouseWheelUp>", "<MouseWheelDown>", "<up>", "<down>",
+		"j", "k", "gg", "G", "<C-d>", "<C-u>", "<C-f>", "<C-b>", "dd",
+		"m", "c", "p",
+	}
+	ui.Off(events)
 }
 
 // FieldsToStrings converts a []Process to a [][]string

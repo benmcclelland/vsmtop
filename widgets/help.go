@@ -9,7 +9,9 @@ import (
 const KEYBINDS = `
 Quit: q or <C-c>
 
-Process Navigation
+<tab>: rotate process/disk/tape focus
+
+Table Navigation
   - <up>/<down> and j/k: up and down
   - <C-d> and <C-u>: up and down half a page
   - <C-f> and <C-b>: up and down a full page

@@ -52,9 +52,9 @@ func NewDisk(keyPressed chan bool) *Disk {
 	}
 	self.Label = "Disk Usage"
 	self.ColResizer = self.ColResize
-	self.ColWidths = []int{10, 7, 7, 7, 7, 7}
+	self.ColWidths = []int{10, 5, 5, 5, 5, 5}
 	self.UniqueCol = 0
-	self.Header = []string{"DEV", "Wbps", "Wiops", "Rbps", "Riops", "UTIL%"}
+	self.Header = []string{"DEV", "WBps", "WIOps", "RBps", "RIOps", "UTIL%"}
 	self.SelectedRow = -1
 
 	self.update()

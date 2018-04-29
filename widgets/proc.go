@@ -148,7 +148,7 @@ func (self *Proc) update() {
 // Sort sorts either the grouped or ungrouped []Process based on the sortMethod.
 // Called with every update, when the sort method is changed, and when processes are grouped and ungrouped.
 func (self *Proc) Sort() {
-	self.Header = []string{"PID", "Command", "CPU%", "Mem%", "I-MBpS", "O-MBpS", "WMBps", "RMBps"}
+	self.Header = []string{"PID", "Command", "CPU%", "Mem%", "Tx-MBpS", "Rx-MBpS", "WMBps", "RMBps"}
 
 	processes := &self.procs
 
@@ -282,8 +282,8 @@ func FieldsToStrings(P []Process) [][]string {
 		strings[i][1] = p.Command
 		strings[i][2] = fmt.Sprintf("%4s", strconv.FormatFloat(p.CPU, 'f', 1, 64))
 		strings[i][3] = fmt.Sprintf("%4s", strconv.FormatFloat(float64(p.Mem), 'f', 1, 32))
-		strings[i][4] = fmt.Sprintf("%6s", strconv.FormatFloat(p.InMBpS, 'f', 3, 64))
-		strings[i][5] = fmt.Sprintf("%6s", strconv.FormatFloat(p.OutMBps, 'f', 3, 64))
+		strings[i][4] = fmt.Sprintf("%6s", strconv.FormatFloat(p.OutMBps, 'f', 3, 64))
+		strings[i][5] = fmt.Sprintf("%6s", strconv.FormatFloat(p.InMBpS, 'f', 3, 64))
 		strings[i][6] = fmt.Sprintf("%6s", strconv.FormatFloat(p.WMBps, 'f', 3, 64))
 		strings[i][7] = fmt.Sprintf("%6s", strconv.FormatFloat(p.RMBps, 'f', 3, 64))
 	}

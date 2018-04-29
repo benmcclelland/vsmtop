@@ -15,7 +15,7 @@ import (
 	"github.com/docopt/docopt-go"
 )
 
-const VERSION = "1.3.4"
+const VERSION = "1.3.5"
 
 var (
 	termResized = make(chan bool, 1)
@@ -28,6 +28,8 @@ var (
 	procKeyPressed = make(chan bool, 1)
 	// used to render the disk widget whenever a key is pressed for it
 	diskKeyPressed = make(chan bool, 1)
+	// used to render the tape widget whenever a key is pressed for it
+	tapeKeyPressed = make(chan bool, 1)
 	// used to render cpu and mem when zoom has changed
 	zoomed = make(chan bool, 1)
 
@@ -149,11 +151,27 @@ func keyBinds() {
 		switch focus {
 		case 0:
 			proc.BackGround()
+			proc.Cursor = ui.Color(colorscheme.BgCursor)
+			ui.Render(proc)
 			disk.ForeGround()
+			disk.Cursor = ui.Color(colorscheme.Cursor)
+			ui.Render(disk)
 			focus = 1
 		case 1:
 			disk.BackGround()
+			disk.Cursor = ui.Color(colorscheme.BgCursor)
+			ui.Render(disk)
+			tape.ForeGround()
+			tape.Cursor = ui.Color(colorscheme.Cursor)
+			ui.Render(tape)
+			focus = 2
+		case 2:
+			tape.BackGround()
+			tape.Cursor = ui.Color(colorscheme.BgCursor)
+			ui.Render(tape)
 			proc.ForeGround()
+			proc.Cursor = ui.Color(colorscheme.Cursor)
+			ui.Render(proc)
 			focus = 0
 		}
 	})
@@ -167,7 +185,7 @@ func termuiColors() {
 	ui.Theme.BorderFg = ui.Color(colorscheme.BorderLine)
 	ui.Theme.BorderBg = ui.Color(colorscheme.Bg)
 
-	ui.Theme.TableCursor = ui.Color(colorscheme.ProcCursor)
+	ui.Theme.TableCursor = ui.Color(colorscheme.Cursor)
 	ui.Theme.Sparkline = ui.Color(colorscheme.Sparkline)
 	ui.Theme.GaugeColor = ui.Color(colorscheme.DiskBar)
 }
@@ -222,7 +240,7 @@ func initWidgets() {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		tape = w.NewTape()
+		tape = w.NewTape(tapeKeyPressed)
 	}()
 
 	wg.Wait()
@@ -283,6 +301,8 @@ func main() {
 					ui.Render(proc)
 				case <-diskKeyPressed:
 					ui.Render(disk)
+				case <-tapeKeyPressed:
+					ui.Render(tape)
 				case <-zoomed:
 					ui.Render(cpu, mem)
 				case <-drawTick.C:

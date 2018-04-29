@@ -12,7 +12,8 @@ var VSM = Colorscheme{
 	MainMem: 0,
 	SwapMem: 26,
 
-	ProcCursor: 7,
+	Cursor:   7,
+	BgCursor: 15,
 
 	Sparkline: 0,
 

@@ -33,7 +33,8 @@ type Colorscheme struct {
 	MainMem int
 	SwapMem int
 
-	ProcCursor int
+	Cursor   int
+	BgCursor int
 
 	Sparkline int
 

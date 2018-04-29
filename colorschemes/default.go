@@ -12,7 +12,8 @@ var Default = Colorscheme{
 	MainMem: 5,
 	SwapMem: 11,
 
-	ProcCursor: 4,
+	Cursor:   4,
+	BgCursor: 4,
 
 	Sparkline: 4,
 

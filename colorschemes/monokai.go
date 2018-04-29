@@ -12,7 +12,8 @@ var Monokai = Colorscheme{
 	MainMem: 208,
 	SwapMem: 186,
 
-	ProcCursor: 197,
+	Cursor:   197,
+	BgCursor: 197,
 
 	Sparkline: 81,
 

@@ -12,7 +12,8 @@ var Solarized = Colorscheme{
 	MainMem: 125,
 	SwapMem: 166,
 
-	ProcCursor: 136,
+	Cursor:   136,
+	BgCursor: 136,
 
 	Sparkline: 33,
 

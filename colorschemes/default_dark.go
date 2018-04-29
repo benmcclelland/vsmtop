@@ -12,7 +12,8 @@ var DefaultDark = Colorscheme{
 	MainMem: 5,
 	SwapMem: 3,
 
-	ProcCursor: 33,
+	Cursor:   33,
+	BgCursor: 33,
 
 	Sparkline: 4,
 

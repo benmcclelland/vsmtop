@@ -37,39 +37,35 @@ const tcppath = "/proc/net/tcp"
 type NetPerf struct {
 	Pstats   map[int32]*Pidstat
 	SockMaps *Sockets
+	// keep track of which device we are already listening on
+	devStarted map[string]struct{}
+	wg         sync.WaitGroup
+	ctx        context.Context
 }
 
 func InitNetPerf(ctx context.Context, pids []int32) (*NetPerf, error) {
-	socks := &Sockets{}
-	err := socks.Update(pids)
-	if err != nil {
-		return nil, err
-	}
-
-	devices, err := pcap.FindAllDevs()
-	if err != nil {
-		return nil, err
-	}
-
 	pstats := make(map[int32]*Pidstat)
 	for _, pid := range pids {
 		pstats[pid] = &Pidstat{}
 	}
 
 	n := &NetPerf{
-		Pstats:   pstats,
-		SockMaps: socks,
+		Pstats:     pstats,
+		SockMaps:   &Sockets{},
+		devStarted: make(map[string]struct{}),
+		ctx:        ctx,
 	}
 
-	for _, device := range devices {
-		if strings.HasPrefix(device.Name, "eth") {
-			go func(name string) {
-				getStats(ctx, name, n)
-			}(device.Name)
-		}
+	err := n.Update(pids)
+	if err != nil {
+		return nil, err
 	}
 
 	return n, nil
+}
+
+func (n *NetPerf) Wait() {
+	n.wg.Wait()
 }
 
 // Sockets is mappings of sockets to pids
@@ -80,7 +76,7 @@ type Sockets struct {
 	remp   map[int64]int32
 }
 
-func (s *Sockets) Update(pids []int32) error {
+func (n *NetPerf) Update(pids []int32) error {
 	f, err := os.Open(tcppath)
 	if err != nil {
 		return err
@@ -94,13 +90,13 @@ func (s *Sockets) Update(pids []int32) error {
 		return err
 	}
 
-	s.mu.Lock()
-	s.locala = socks.locala
-	s.localp = socks.localp
-	s.remp = socks.remp
-	s.mu.Unlock()
+	n.SockMaps.mu.Lock()
+	n.SockMaps.locala = socks.locala
+	n.SockMaps.localp = socks.localp
+	n.SockMaps.remp = socks.remp
+	n.SockMaps.mu.Unlock()
 
-	return nil
+	return n.startDevices()
 }
 
 // Pidstat is byte counts
@@ -130,6 +126,34 @@ func (p *Pidstat) Get() (int, int) {
 	p.rxBytes = 0
 	p.mu.Unlock()
 	return tx, rx
+}
+
+func (n *NetPerf) startDevices() error {
+	devices, err := pcap.FindAllDevs()
+	if err != nil {
+		return err
+	}
+
+	for _, device := range devices {
+		if device.Name == "lo" {
+			continue
+		}
+		for _, address := range device.Addresses {
+			for addr, _ := range n.SockMaps.locala {
+				if int2ip(uint32(addr)).Equal(address.IP) || addr == 0 {
+					if _, ok := n.devStarted[device.Name]; !ok {
+						n.wg.Add(1)
+						go func(name string) {
+							getStats(n.ctx, name, n)
+							n.wg.Done()
+						}(device.Name)
+						n.devStarted[device.Name] = struct{}{}
+					}
+				}
+			}
+		}
+	}
+	return nil
 }
 
 func getSockets(pids []int32) map[string]int32 {

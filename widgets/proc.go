@@ -101,9 +101,9 @@ func NewProc(keyPressed chan bool) *Proc {
 }
 
 func (self *Proc) Cleanup() {
-	//TODO wait for goroutines, but the pcap gopacket
-	// was hanging a few seconds, so thats annoying on exit
 	self.cancel()
+	// TODO figure out why it takes a timeout on some interfaces to stop
+	//self.netperf.Wait()
 }
 
 func (self *Proc) update() {
@@ -116,7 +116,7 @@ func (self *Proc) update() {
 			pids = append(pids, psProcess.Pid)
 		}
 	}
-	self.netperf.SockMaps.Update(pids)
+	self.netperf.Update(pids)
 
 	self.procs = []Process{}
 	for _, psProcess := range psProcesses {

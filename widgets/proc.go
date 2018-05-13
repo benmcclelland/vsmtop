@@ -1,6 +1,7 @@
 package widgets
 
 import (
+	"context"
 	"fmt"
 	"os/exec"
 	"sort"
@@ -15,8 +16,9 @@ import (
 )
 
 const (
-	UP   = "▲"
-	DOWN = "▼"
+	UP       = "▲"
+	DOWN     = "▼"
+	psprefix = "sam-"
 )
 
 // Process represents each process.
@@ -29,11 +31,6 @@ type Process struct {
 	OutMBps float64
 	WMBps   float64
 	RMBps   float64
-}
-
-type nPerf struct {
-	inBytes  uint64
-	outBytes uint64
 }
 
 type dPerf struct {
@@ -49,20 +46,39 @@ type Proc struct {
 	procs            []Process
 	KeyPressed       chan bool
 	DefaultColWidths []int
-	nperf            map[int32]nPerf
 	dperf            map[int32]dPerf
+	cancel           context.CancelFunc
+	netperf          *utils.NetPerf
 }
 
 func NewProc(keyPressed chan bool) *Proc {
 	cpuCount, _ := psCPU.Counts(false)
+
+	ctx, cancel := context.WithCancel(context.Background())
+
+	var pids []int32
+	psProcesses, _ := psProc.Processes()
+	for _, psProcess := range psProcesses {
+		command, _ := psProcess.Name()
+		if strings.HasPrefix(command, psprefix) {
+			pids = append(pids, psProcess.Pid)
+		}
+	}
+
+	n, err := utils.InitNetPerf(ctx, pids)
+	if err != nil {
+		panic(err)
+	}
+
 	self := &Proc{
 		Table:      ui.NewTable(),
 		interval:   time.Second,
 		cpuCount:   cpuCount,
 		sortMethod: "c",
 		KeyPressed: keyPressed,
-		nperf:      make(map[int32]nPerf),
 		dperf:      make(map[int32]dPerf),
+		cancel:     cancel,
+		netperf:    n,
 	}
 	self.Label = "VSM Process List"
 	self.ColResizer = self.ColResize
@@ -84,31 +100,31 @@ func NewProc(keyPressed chan bool) *Proc {
 	return self
 }
 
+func (self *Proc) Cleanup() {
+	//TODO wait for goroutines, but the pcap gopacket
+	// was hanging a few seconds, so thats annoying on exit
+	self.cancel()
+}
+
 func (self *Proc) update() {
 	psProcesses, _ := psProc.Processes()
+
+	var pids []int32
+	for _, psProcess := range psProcesses {
+		command, _ := psProcess.Name()
+		if strings.HasPrefix(command, psprefix) {
+			pids = append(pids, psProcess.Pid)
+		}
+	}
+	self.netperf.SockMaps.Update(pids)
+
 	self.procs = []Process{}
 	for _, psProcess := range psProcesses {
 		command, _ := psProcess.Name()
-		if strings.HasPrefix(command, "sam-") {
+		if strings.HasPrefix(command, psprefix) {
 			pid := psProcess.Pid
 			cpu, _ := psProcess.CPUPercent()
 			mem, _ := psProcess.MemoryPercent()
-
-			nstats, _ := psProcess.NetIOCounters(false)
-			var outmbps, inmbps float64
-			if perf, ok := self.nperf[pid]; ok {
-				outmbps = utils.BytesToMB(nstats[0].BytesSent - perf.outBytes)
-				perf.outBytes = nstats[0].BytesSent
-				inmbps = utils.BytesToMB(nstats[0].BytesRecv - perf.inBytes)
-				perf.inBytes = nstats[0].BytesRecv
-				self.nperf[pid] = perf
-			} else {
-				outmbps = 0.0
-				perf.outBytes = nstats[0].BytesSent
-				inmbps = 0.0
-				perf.inBytes = nstats[0].BytesRecv
-				self.nperf[pid] = perf
-			}
 
 			dstats, err := psProcess.IOCounters()
 			if err != nil {
@@ -129,13 +145,20 @@ func (self *Proc) update() {
 				self.dperf[pid] = perf
 			}
 
+			var tx, rx int
+			if pstat, ok := self.netperf.Pstats[pid]; ok {
+				tx, rx = pstat.Get()
+			} else {
+				tx, rx = 0, 0
+			}
+
 			self.procs = append(self.procs, Process{
 				PID:     pid,
 				Command: command,
 				CPU:     cpu / float64(self.cpuCount),
 				Mem:     mem,
-				InMBpS:  inmbps,
-				OutMBps: outmbps,
+				InMBpS:  utils.BytesToMB(uint64(rx)),
+				OutMBps: utils.BytesToMB(uint64(tx)),
 				WMBps:   wmbps,
 				RMBps:   rmbps,
 			})

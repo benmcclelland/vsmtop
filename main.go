@@ -116,6 +116,7 @@ func setupGrid() {
 func keyBinds() {
 	// quits
 	ui.On("q", "<C-c>", func(e ui.Event) {
+		proc.Cleanup()
 		ui.StopLoop()
 	})
 

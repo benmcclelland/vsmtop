@@ -6,7 +6,6 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
-	"log"
 	"net"
 	"os"
 	"path/filepath"
@@ -240,14 +239,14 @@ func int2ip(nn uint32) net.IP {
 func getStats(ctx context.Context, device string, n *NetPerf) {
 	handle, err := pcap.OpenLive(device, snapshotlen, promiscuous, timeout)
 	if err != nil {
-		log.Fatal(err)
+		return
 	}
 	defer handle.Close()
 
 	filter := "tcp"
 	err = handle.SetBPFFilter(filter)
 	if err != nil {
-		log.Fatal(err)
+		return
 	}
 
 	packetSource := gopacket.NewPacketSource(handle, handle.LinkType())

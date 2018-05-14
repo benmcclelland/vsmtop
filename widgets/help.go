@@ -25,6 +25,9 @@ Process Sorting
 n: cycle selected interface stats
 dd: kill the selected process
 h and l: zoom in and out of CPU and Mem graphs
+a: display all processes
+
+Disk and Net perf stats only aviable as root
 
 esc to exit help
 `
@@ -36,7 +39,7 @@ type HelpMenu struct {
 func NewHelpMenu() *HelpMenu {
 	block := ui.NewBlock()
 	block.X = 48 // width - 1
-	block.Y = 20 // height - 1
+	block.Y = 24 // height - 1
 	return &HelpMenu{block}
 }
 

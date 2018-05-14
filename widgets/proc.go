@@ -49,6 +49,7 @@ type Proc struct {
 	dperf            map[int32]dPerf
 	cancel           context.CancelFunc
 	netperf          *utils.NetPerf
+	allprocs         bool
 }
 
 func NewProc(keyPressed chan bool) *Proc {
@@ -112,7 +113,7 @@ func (self *Proc) update() {
 	var pids []int32
 	for _, psProcess := range psProcesses {
 		command, _ := psProcess.Name()
-		if strings.HasPrefix(command, psprefix) {
+		if self.allprocs || strings.HasPrefix(command, psprefix) {
 			pids = append(pids, psProcess.Pid)
 		}
 	}
@@ -121,28 +122,30 @@ func (self *Proc) update() {
 	self.procs = []Process{}
 	for _, psProcess := range psProcesses {
 		command, _ := psProcess.Name()
-		if strings.HasPrefix(command, psprefix) {
+		if self.allprocs || strings.HasPrefix(command, psprefix) {
 			pid := psProcess.Pid
 			cpu, _ := psProcess.CPUPercent()
 			mem, _ := psProcess.MemoryPercent()
 
+			var wmbps, rmbps float64
 			dstats, err := psProcess.IOCounters()
 			if err != nil {
-				panic(err)
-			}
-			var wmbps, rmbps float64
-			if perf, ok := self.dperf[pid]; ok {
-				wmbps = utils.BytesToMB(dstats.WriteBytes - perf.wBytes)
-				perf.wBytes = dstats.WriteBytes
-				rmbps = utils.BytesToMB(dstats.ReadBytes - perf.rBytes)
-				perf.rBytes = dstats.ReadBytes
-				self.dperf[pid] = perf
+				wmbps = -1.0
+				rmbps = -1.0
 			} else {
-				wmbps = 0.0
-				perf.wBytes = dstats.WriteBytes
-				rmbps = 0.0
-				perf.rBytes = dstats.ReadBytes
-				self.dperf[pid] = perf
+				if perf, ok := self.dperf[pid]; ok {
+					wmbps = utils.BytesToMB(dstats.WriteBytes - perf.wBytes)
+					perf.wBytes = dstats.WriteBytes
+					rmbps = utils.BytesToMB(dstats.ReadBytes - perf.rBytes)
+					perf.rBytes = dstats.ReadBytes
+					self.dperf[pid] = perf
+				} else {
+					wmbps = 0.0
+					perf.wBytes = dstats.WriteBytes
+					rmbps = 0.0
+					perf.rBytes = dstats.ReadBytes
+					self.dperf[pid] = perf
+				}
 			}
 
 			var tx, rx int
@@ -285,13 +288,27 @@ func (self *Proc) ForeGround() {
 			self.KeyPressed <- true
 		}
 	})
+
+	ui.On("a", func(e ui.Event) {
+		self.ToggleProcs()
+		self.update()
+		self.KeyPressed <- true
+	})
+}
+
+func (self *Proc) ToggleProcs() {
+	if self.allprocs {
+		self.allprocs = false
+		return
+	}
+	self.allprocs = true
 }
 
 func (self *Proc) BackGround() {
 	events := []string{
 		"<MouseLeft>", "<MouseWheelUp>", "<MouseWheelDown>", "<up>", "<down>",
 		"j", "k", "gg", "G", "<C-d>", "<C-u>", "<C-f>", "<C-b>", "dd",
-		"m", "c", "p",
+		"m", "c", "p", "a",
 	}
 	ui.Off(events)
 }

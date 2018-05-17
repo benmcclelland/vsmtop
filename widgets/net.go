@@ -2,6 +2,7 @@ package widgets
 
 import (
 	"fmt"
+	"log"
 	"time"
 
 	ui "github.com/benmcclelland/termui"
@@ -47,7 +48,12 @@ func NewNet() *Net {
 
 func (self *Net) Switch() {
 	self.iface++
-	interfaces, _ := psNet.IOCounters(true)
+	interfaces, err := psNet.IOCounters(true)
+	if err != nil {
+		log.Println(err)
+		self.iface--
+		return
+	}
 	if self.iface == len(interfaces) {
 		self.iface = -1
 	}
@@ -63,12 +69,20 @@ func (self *Net) update() {
 	var name string
 	if self.iface == -1 {
 		// `false` causes psutil to group all network activity
-		interfaces, _ := psNet.IOCounters(false)
+		interfaces, err := psNet.IOCounters(false)
+		if err != nil {
+			log.Println(err)
+			return
+		}
 		curRecvTotal = interfaces[0].BytesRecv
 		curSentTotal = interfaces[0].BytesSent
 		name = "Total"
 	} else {
-		interfaces, _ := psNet.IOCounters(true)
+		interfaces, err := psNet.IOCounters(true)
+		if err != nil {
+			log.Println(err)
+			return
+		}
 		curRecvTotal = interfaces[self.iface].BytesRecv
 		curSentTotal = interfaces[self.iface].BytesSent
 		name = interfaces[self.iface].Name

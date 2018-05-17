@@ -1,5 +1,5 @@
 Name:           vsmtop
-Version:        1.3.7
+Version:        1.3.8
 Release:        1
 Summary:        VSM console performance display
 Group:			Applications/Archiving

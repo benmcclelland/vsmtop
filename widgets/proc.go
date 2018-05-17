@@ -3,6 +3,7 @@ package widgets
 import (
 	"context"
 	"fmt"
+	"log"
 	"os/exec"
 	"sort"
 	"strconv"
@@ -53,7 +54,10 @@ type Proc struct {
 }
 
 func NewProc(keyPressed chan bool) *Proc {
-	cpuCount, _ := psCPU.Counts(false)
+	cpuCount, err := psCPU.Counts(false)
+	if err != nil {
+		panic(err)
+	}
 
 	ctx, cancel := context.WithCancel(context.Background())
 
@@ -108,11 +112,19 @@ func (self *Proc) Cleanup() {
 }
 
 func (self *Proc) update() {
-	psProcesses, _ := psProc.Processes()
+	psProcesses, err := psProc.Processes()
+	if err != nil {
+		log.Println(err)
+		return
+	}
 
 	var pids []int32
 	for _, psProcess := range psProcesses {
-		command, _ := psProcess.Name()
+		command, err := psProcess.Name()
+		if err != nil {
+			log.Println(err)
+			continue
+		}
 		if self.allprocs || strings.HasPrefix(command, psprefix) {
 			pids = append(pids, psProcess.Pid)
 		}
@@ -121,11 +133,23 @@ func (self *Proc) update() {
 
 	self.procs = []Process{}
 	for _, psProcess := range psProcesses {
-		command, _ := psProcess.Name()
+		command, err := psProcess.Name()
+		if err != nil {
+			log.Println(err)
+			continue
+		}
 		if self.allprocs || strings.HasPrefix(command, psprefix) {
 			pid := psProcess.Pid
-			cpu, _ := psProcess.CPUPercent()
-			mem, _ := psProcess.MemoryPercent()
+			cpu, err := psProcess.CPUPercent()
+			if err != nil {
+				log.Println(err)
+				continue
+			}
+			mem, err := psProcess.MemoryPercent()
+			if err != nil {
+				log.Println(err)
+				continue
+			}
 
 			var wmbps, rmbps float64
 			dstats, err := psProcess.IOCounters()

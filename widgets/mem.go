@@ -1,6 +1,7 @@
 package widgets
 
 import (
+	"log"
 	"time"
 
 	ui "github.com/benmcclelland/termui"
@@ -37,8 +38,16 @@ func NewMem(interval time.Duration, zoom int) *Mem {
 }
 
 func (self *Mem) update() {
-	main, _ := psMem.VirtualMemory()
-	swap, _ := psMem.SwapMemory()
+	main, err := psMem.VirtualMemory()
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	swap, err := psMem.SwapMemory()
+	if err != nil {
+		log.Println(err)
+		return
+	}
 	self.Data["Main"] = append(self.Data["Main"], main.UsedPercent)
 	if len(self.Data["Main"]) > MEMHISTMAX {
 		self.Data["Main"] = self.Data["Main"][len(self.Data["Main"])-MEMHISTMAX:]

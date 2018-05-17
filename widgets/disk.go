@@ -2,6 +2,7 @@ package widgets
 
 import (
 	"fmt"
+	"log"
 	"path/filepath"
 	"time"
 
@@ -76,7 +77,12 @@ func (self *Disk) update() {
 		return
 	}
 
-	self.countersnew, _ = disk.IOCounters()
+	var err error
+	self.countersnew, err = disk.IOCounters()
+	if err != nil {
+		log.Println(err)
+		return
+	}
 
 	if self.countersprev == nil {
 		self.countersprev = self.countersnew

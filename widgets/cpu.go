@@ -2,6 +2,7 @@ package widgets
 
 import (
 	"fmt"
+	"log"
 	"strconv"
 	"time"
 
@@ -56,7 +57,11 @@ func NewCPU(interval time.Duration, zoom int) *CPU {
 func (self *CPU) update() {
 	// show average cpu usage if more than 8 cores
 	if self.Count <= CPUMAX {
-		percents, _ := psCPU.Percent(self.interval, true)
+		percents, err := psCPU.Percent(self.interval, true)
+		if err != nil {
+			log.Println(err)
+			return
+		}
 		if len(percents) != self.Count {
 			count, _ := psCPU.Counts(false)
 			utils.Error("CPU percentages",
@@ -77,7 +82,11 @@ func (self *CPU) update() {
 			}
 		}
 	} else {
-		percent, _ := psCPU.Percent(self.interval, false)
+		percent, err := psCPU.Percent(self.interval, false)
+		if err != nil {
+			log.Println(err)
+			return
+		}
 		self.Data["Average"] = append(self.Data["Average"], percent[0])
 		if len(self.Data["Average"]) > CPUHISTMAX {
 			self.Data["Average"] = self.Data["Average"][len(self.Data["Average"])-CPUHISTMAX:]

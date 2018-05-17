@@ -2,6 +2,7 @@ package widgets
 
 import (
 	"fmt"
+	"log"
 	"time"
 
 	ui "github.com/benmcclelland/termui"
@@ -59,7 +60,12 @@ func (self *Tape) update() {
 		return
 	}
 
-	self.countersnew, _ = utils.GetAllStats(self.devs)
+	var err error
+	self.countersnew, err = utils.GetAllStats(self.devs)
+	if err != nil {
+		log.Println(err)
+		return
+	}
 
 	if self.countersprev == nil {
 		self.countersprev = self.countersnew

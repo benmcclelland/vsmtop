@@ -13,7 +13,6 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"time"
 
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/layers"
@@ -24,7 +23,7 @@ var (
 	//TODO: can we get accurate packet length with smaller snapshotlen?
 	snapshotlen int32 = 1024
 	promiscuous       = false
-	timeout           = 30 * time.Second
+	timeout           = pcap.BlockForever
 	//socket:[1349011]
 	socketRxp = regexp.MustCompile(`^socket:\[(\d+)\]$`)
 	//   0: 00000000:1BC1 00000000:0000 0A 00000000:00000000 00:00000000 00000000     0        0 1417548 1 ffff8800733a2140 99 0 0 10 -1

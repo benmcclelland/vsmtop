@@ -1,0 +1,3 @@
+The release tarball must include the full src path from GOPATH root:
+cd ~/go
+tar czf vsmtop-<version>-<releas>.tar.gz src/github.com/benmcclelland/vsmtop

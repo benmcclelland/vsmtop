@@ -23,7 +23,10 @@ const (
 )
 
 func NewCPU(interval time.Duration, zoom int) *CPU {
-	count, _ := psCPU.Counts(false)
+	count, err := psCPU.Counts(false)
+	if err != nil {
+		panic(err)
+	}
 	self := &CPU{
 		LineGraph: ui.NewLineGraph(),
 		Count:     count,
@@ -59,7 +62,9 @@ func (self *CPU) update() {
 	if self.Count <= CPUMAX {
 		percents, err := psCPU.Percent(self.interval, true)
 		if err != nil {
-			log.Println(err)
+			if debug {
+				log.Println(err)
+			}
 			return
 		}
 		if len(percents) != self.Count {
@@ -78,18 +83,22 @@ func (self *CPU) update() {
 			percent := percents[i]
 			self.Data[key] = append(self.Data[key], percent)
 			if len(self.Data[key]) > CPUHISTMAX {
-				self.Data[key] = self.Data[key][len(self.Data[key])-CPUHISTMAX:]
+				self.Data[key] = self.Data[key][len(self.Data[key])-CPUHISTMAX-60:]
 			}
 		}
 	} else {
 		percent, err := psCPU.Percent(self.interval, false)
 		if err != nil {
-			log.Println(err)
+			if debug {
+				log.Println(err)
+			}
 			return
 		}
-		self.Data["Average"] = append(self.Data["Average"], percent[0])
-		if len(self.Data["Average"]) > CPUHISTMAX {
-			self.Data["Average"] = self.Data["Average"][len(self.Data["Average"])-CPUHISTMAX:]
+		if len(percent) > 0 {
+			self.Data["Average"] = append(self.Data["Average"], percent[0])
+			if len(self.Data["Average"]) > CPUHISTMAX {
+				self.Data["Average"] = self.Data["Average"][len(self.Data["Average"])-CPUHISTMAX-60:]
+			}
 		}
 	}
 }

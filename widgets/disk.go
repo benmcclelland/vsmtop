@@ -80,7 +80,9 @@ func (self *Disk) update() {
 	var err error
 	self.countersnew, err = disk.IOCounters()
 	if err != nil {
-		log.Println(err)
+		if debug {
+			log.Println(err)
+		}
 		return
 	}
 

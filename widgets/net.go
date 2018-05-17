@@ -50,7 +50,9 @@ func (self *Net) Switch() {
 	self.iface++
 	interfaces, err := psNet.IOCounters(true)
 	if err != nil {
-		log.Println(err)
+		if debug {
+			log.Println(err)
+		}
 		self.iface--
 		return
 	}

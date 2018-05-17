@@ -8,6 +8,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	ui "github.com/benmcclelland/termui"
@@ -51,6 +52,9 @@ type Proc struct {
 	cancel           context.CancelFunc
 	netperf          *utils.NetPerf
 	allprocs         bool
+
+	// synchronize simultaneous updates due to user keypressed
+	mu sync.Mutex
 }
 
 func NewProc(keyPressed chan bool) *Proc {
@@ -112,9 +116,14 @@ func (self *Proc) Cleanup() {
 }
 
 func (self *Proc) update() {
+	self.mu.Lock()
+	defer self.mu.Unlock()
+
 	psProcesses, err := psProc.Processes()
 	if err != nil {
-		log.Println(err)
+		if debug {
+			log.Println(err)
+		}
 		return
 	}
 
@@ -122,7 +131,9 @@ func (self *Proc) update() {
 	for _, psProcess := range psProcesses {
 		command, err := psProcess.Name()
 		if err != nil {
-			log.Println(err)
+			if debug {
+				log.Println(err)
+			}
 			continue
 		}
 		if self.allprocs || strings.HasPrefix(command, psprefix) {
@@ -135,19 +146,25 @@ func (self *Proc) update() {
 	for _, psProcess := range psProcesses {
 		command, err := psProcess.Name()
 		if err != nil {
-			log.Println(err)
+			if debug {
+				log.Println(err)
+			}
 			continue
 		}
 		if self.allprocs || strings.HasPrefix(command, psprefix) {
 			pid := psProcess.Pid
 			cpu, err := psProcess.CPUPercent()
 			if err != nil {
-				log.Println(err)
+				if debug {
+					log.Println(err)
+				}
 				continue
 			}
 			mem, err := psProcess.MemoryPercent()
 			if err != nil {
-				log.Println(err)
+				if debug {
+					log.Println(err)
+				}
 				continue
 			}
 

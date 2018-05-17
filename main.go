@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"os/signal"
 	"sync"
@@ -28,6 +29,8 @@ var (
 	diskKeyPressed = make(chan bool, 1)
 	// used to render the tape widget whenever a key is pressed for it
 	tapeKeyPressed = make(chan bool, 1)
+	// used to render the net widget whenever a key is pressed for it
+	netKeyPressed = make(chan bool, 1)
 	// used to render cpu and mem when zoom has changed
 	zoomed = make(chan bool, 1)
 
@@ -116,7 +119,7 @@ func keyBinds() {
 
 	ui.On("n", func(e ui.Event) {
 		net.Switch()
-		ui.Render(net)
+		netKeyPressed <- true
 	})
 
 	ui.On("<tab>", func(e ui.Event) {
@@ -124,26 +127,26 @@ func keyBinds() {
 		case 0:
 			proc.BackGround()
 			proc.Cursor = ui.Color(colorscheme.BgCursor)
-			ui.Render(proc)
+			procKeyPressed <- true
 			disk.ForeGround()
 			disk.Cursor = ui.Color(colorscheme.Cursor)
-			ui.Render(disk)
+			diskKeyPressed <- true
 			focus = 1
 		case 1:
 			disk.BackGround()
 			disk.Cursor = ui.Color(colorscheme.BgCursor)
-			ui.Render(disk)
+			diskKeyPressed <- true
 			tape.ForeGround()
 			tape.Cursor = ui.Color(colorscheme.Cursor)
-			ui.Render(tape)
+			tapeKeyPressed <- true
 			focus = 2
 		case 2:
 			tape.BackGround()
 			tape.Cursor = ui.Color(colorscheme.BgCursor)
-			ui.Render(tape)
+			tapeKeyPressed <- true
 			proc.ForeGround()
 			proc.Cursor = ui.Color(colorscheme.Cursor)
-			ui.Render(proc)
+			procKeyPressed <- true
 			focus = 0
 		}
 	})
@@ -220,6 +223,7 @@ func initWidgets() {
 
 func main() {
 	os.Setenv("TERM", "xterm-256color")
+	log.SetFlags(log.LstdFlags | log.Lshortfile)
 
 	keyBinds()
 
@@ -275,6 +279,8 @@ func main() {
 					ui.Render(disk)
 				case <-tapeKeyPressed:
 					ui.Render(tape)
+				case <-netKeyPressed:
+					ui.Render(net)
 				case <-zoomed:
 					ui.Render(cpu, mem)
 				case <-drawTick.C:

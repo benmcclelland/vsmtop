@@ -63,7 +63,9 @@ func (self *Tape) update() {
 	var err error
 	self.countersnew, err = utils.GetAllStats(self.devs)
 	if err != nil {
-		log.Println(err)
+		if debug {
+			log.Println(err)
+		}
 		return
 	}
 

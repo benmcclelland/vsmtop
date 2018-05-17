@@ -39,6 +39,9 @@ type NetPerf struct {
 	devStarted map[string]struct{}
 	wg         sync.WaitGroup
 	ctx        context.Context
+
+	// synchronize simultaneous updates due to user keypressed
+	mu sync.Mutex
 }
 
 func InitNetPerf(ctx context.Context, pids []int32) (*NetPerf, error) {
@@ -75,6 +78,9 @@ type Sockets struct {
 }
 
 func (n *NetPerf) Update(pids []int32) error {
+	n.mu.Lock()
+	defer n.mu.Unlock()
+
 	f, err := os.Open(tcppath)
 	if err != nil {
 		return err

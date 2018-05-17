@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
-	"strconv"
 	"sync"
 	"syscall"
 	"time"
@@ -12,7 +11,6 @@ import (
 	ui "github.com/benmcclelland/termui"
 	"github.com/benmcclelland/vsmtop/colorschemes"
 	w "github.com/benmcclelland/vsmtop/widgets"
-	"github.com/docopt/docopt-go"
 )
 
 const VERSION = "1.3.6"
@@ -50,38 +48,6 @@ var (
 
 	help *w.HelpMenu
 )
-
-func cliArguments() {
-	usage := `
-Usage: vsmtop [options]
-
-Options:
-  -c, --color=NAME      Set a colorscheme.
-  -h, --help            Show this screen.
-  -r, --rate=RATE       Number of times per second to update CPU and Mem widgets [default: 1].
-  -v, --version         Show version.
-
-Colorschemes:
-  default
-  default-dark (for white background)
-  solarized
-  monokai
-`
-
-	args, _ := docopt.ParseArgs(usage, os.Args[1:], VERSION)
-
-	if val, _ := args["--color"]; val != nil {
-		handleColorscheme(val.(string))
-	}
-
-	rateStr, _ := args["--rate"].(string)
-	rate, _ := strconv.ParseFloat(rateStr, 64)
-	if rate < 1 {
-		interval = time.Second * time.Duration(1/rate)
-	} else {
-		interval = time.Second / time.Duration(rate)
-	}
-}
 
 func handleColorscheme(cs string) {
 	switch cs {
@@ -253,7 +219,7 @@ func initWidgets() {
 }
 
 func main() {
-	cliArguments()
+	os.Setenv("TERM", "xterm-256color")
 
 	keyBinds()
 

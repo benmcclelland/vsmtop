@@ -13,7 +13,7 @@ import (
 	w "github.com/benmcclelland/vsmtop/widgets"
 )
 
-const VERSION = "1.3.6"
+const VERSION = "1.3.7"
 
 var (
 	termResized = make(chan bool, 1)

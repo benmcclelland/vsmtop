@@ -79,6 +79,8 @@ func (self *CPU) update() {
 	} else {
 		percent, _ := psCPU.Percent(self.interval, false)
 		self.Data["Average"] = append(self.Data["Average"], percent[0])
-		self.Data["Average"] = self.Data["Average"][len(self.Data["Average"])-CPUHISTMAX:]
+		if len(self.Data["Average"]) > CPUHISTMAX {
+			self.Data["Average"] = self.Data["Average"][len(self.Data["Average"])-CPUHISTMAX:]
+		}
 	}
 }

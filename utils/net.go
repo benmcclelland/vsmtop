@@ -6,6 +6,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
+	"log"
 	"net"
 	"os"
 	"path/filepath"
@@ -28,6 +29,7 @@ var (
 	socketRxp = regexp.MustCompile(`^socket:\[(\d+)\]$`)
 	//   0: 00000000:1BC1 00000000:0000 0A 00000000:00000000 00:00000000 00000000     0        0 1417548 1 ffff8800733a2140 99 0 0 10 -1
 	tcpRxp = regexp.MustCompile(`^\s*(?P<sl>\S+)\s*(?P<local_address>\S+)\s*(?P<rem_address>\S+)\s*(?P<st>\S+)\s*(?P<tx_rx_queue>\S+)\s*(?P<tr_tm_when>\S+)\s*(?P<retrnsmt>\S+)\s*(?P<uid>\S+)\s*(?P<timeout>\S+)\s*(?P<inode>\S+)`)
+	debug  = false
 )
 
 const tcppath = "/proc/net/tcp"
@@ -80,6 +82,11 @@ type Sockets struct {
 func (n *NetPerf) Update(pids []int32) error {
 	n.mu.Lock()
 	defer n.mu.Unlock()
+	for _, pid := range pids {
+		if _, ok := n.Pstats[pid]; !ok {
+			n.Pstats[pid] = &Pidstat{}
+		}
+	}
 
 	f, err := os.Open(tcppath)
 	if err != nil {
@@ -244,6 +251,9 @@ func int2ip(nn uint32) net.IP {
 func getStats(ctx context.Context, device string, n *NetPerf) {
 	handle, err := pcap.OpenLive(device, snapshotlen, promiscuous, timeout)
 	if err != nil {
+		if debug {
+			log.Println(err)
+		}
 		return
 	}
 	defer handle.Close()
@@ -251,6 +261,9 @@ func getStats(ctx context.Context, device string, n *NetPerf) {
 	filter := "tcp"
 	err = handle.SetBPFFilter(filter)
 	if err != nil {
+		if debug {
+			log.Println(err)
+		}
 		return
 	}
 

@@ -50,10 +50,10 @@ func (self *Mem) update() {
 	}
 	self.Data["Main"] = append(self.Data["Main"], main.UsedPercent)
 	if len(self.Data["Main"]) > MEMHISTMAX {
-		self.Data["Main"] = self.Data["Main"][len(self.Data["Main"])-MEMHISTMAX-60:]
+		self.Data["Main"] = self.Data["Main"][len(self.Data["Main"])-MEMHISTMAX+60:]
 	}
 	self.Data["Swap"] = append(self.Data["Swap"], swap.UsedPercent)
 	if len(self.Data["Swap"]) > MEMHISTMAX {
-		self.Data["Swap"] = self.Data["Swap"][len(self.Data["Swap"])-MEMHISTMAX-60:]
+		self.Data["Swap"] = self.Data["Swap"][len(self.Data["Swap"])-MEMHISTMAX+60:]
 	}
 }

@@ -83,7 +83,7 @@ func (self *CPU) update() {
 			percent := percents[i]
 			self.Data[key] = append(self.Data[key], percent)
 			if len(self.Data[key]) > CPUHISTMAX {
-				self.Data[key] = self.Data[key][len(self.Data[key])-CPUHISTMAX-60:]
+				self.Data[key] = self.Data[key][len(self.Data[key])-CPUHISTMAX+60:]
 			}
 		}
 	} else {
@@ -97,7 +97,7 @@ func (self *CPU) update() {
 		if len(percent) > 0 {
 			self.Data["Average"] = append(self.Data["Average"], percent[0])
 			if len(self.Data["Average"]) > CPUHISTMAX {
-				self.Data["Average"] = self.Data["Average"][len(self.Data["Average"])-CPUHISTMAX-60:]
+				self.Data["Average"] = self.Data["Average"][len(self.Data["Average"])-CPUHISTMAX+60:]
 			}
 		}
 	}
